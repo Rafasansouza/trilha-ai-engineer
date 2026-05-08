@@ -1,0 +1,155 @@
+# 🐍 Python para Sistemas de IA: O Framework de Engenharia
+
+> **Objetivo:** Estabelecer a fundação técnica para construção de sistemas de IA, indo além de notebooks e scripts experimentais. Aqui, Python é tratado como a infraestrutura de aplicações críticas.
+
+Este módulo define como um AI Engineer Sênior estrutura seu ambiente e escolhe suas ferramentas para construir LLMs, RAGs e Agentes em produção.
+
+---
+
+## 🏗️ Parte 1: Setup do Workspace (Nível AI Engineer)
+
+Esqueça o tutorial básico de `pip install`. Em sistemas complexos de IA, **reprodutibilidade e isolamento** são inegociáveis. O caos de dependências é o maior inimigo da estabilidade operacional.
+
+### Por que o modelo tradicional falha?
+O método antigo (`venv` + `requirements.txt` gerado manualmente ou com `pip freeze`) não garante determinismo. Builds quebram porque bibliotecas "filhas" atualizaram sem aviso. Em IA, onde pacotes como `torch` ou `cuda` são massivos e sensíveis, isso é fatal.
+
+### O Stack Moderno
+
+#### **1. Gerenciamento de Dependências: `uv`**
+O novo padrão industrial. Escrito em Rust, substitui `pip`, `poetry`, `pyenv` e `virtualenv` de uma só vez.
+- **Lockfiles Universais:** Garante que a versão exata (hash) instalada no seu laptop seja a mesma do container em produção.
+- **Workspaces:** Suporte nativo a monorepos, permitindo ter múltiplos pacotes (ex: `core`, `api`, `workers`) compartilhando dependências base.
+- **Velocidade:** Instala pacotes pesados de ML (GBs) em segundos, não minutos.
+
+#### **2. Estrutura de Projeto (Separation of Concerns)**
+- **Dev/Test/Prod:** Separação rígida de dependências via grupos no `pyproject.toml`.
+- **Configuração Centralizada:** Todas as ferramentas (`ruff`, `mypy`, `pytest`) leem do mesmo `pyproject.toml`. Nada de arquivos de config espalhados.
+
+> **Mindset:** "Meu ambiente de desenvolvimento é uma réplica determinística da produção. Se funciona aqui, o container sobe lá."
+
+---
+
+## 🛠️ Parte 2: Bibliotecas Core para Sistemas de IA
+
+Antes de falar de LLMs, precisamos de uma base sólida de Engenharia de Software. Estas são as ferramentas que sustentam o sistema.
+
+| Biblioteca | Função no Sistema de IA |
+| :--- | :--- |
+| **Pydantic** | **O Contrato de Dados.** Define a estrutura de inputs/outputs, valida respostas de LLMs e garante integridade. Essencial para *Structured Outputs*. |
+| **FastAPI** | **A Camada de Serviço.** Padrão para servir modelos e APIs de RAG devido ao suporte nativo a AsyncIO e injeção de dependência. |
+| **HTTPX** | **O Cliente Web.** O substituto moderno do `requests`. Totalmente assíncrono, perfeito para orquestrar chamadas paralelas a APIs de LLM. |
+| **AsyncIO** | **A Concorrência.** LLMs são lentos (I/O bound). AsyncIO permite processar milhares de requests enquanto aguarda a inferência. |
+| **Tenacity** | **A Resiliência.** Retries inteligentes com *exponential backoff*. Obrigatório, pois APIs de IA falham frequentemente. |
+| **Logging** | **A Observabilidade.** Logs estruturados. Vital para rastrear o fluxo de execução em produção. |
+| **Python-Dotenv** | **A Segurança.** Carrega segredos de ambiente. Chaves de API nunca devem estar no código. |
+
+---
+
+## 🧠 Parte 3: Frameworks de Sistemas de IA
+
+Aqui entram as ferramentas específicas para construir a inteligência da aplicação. O segredo é saber **quando** usar cada uma.
+
+### 1. Frameworks de Orquestração de LLM
+*O "cérebro" que conecta o modelo ao código.*
+
+- **LangChain:** O pioneiro. Excelente para prototipagem rápida e integrações amplas.
+  - *Docs:* [Langchain](https://python.langchain.com/)
+- **LangGraph:** A evolução para produção. Focado em **grafos de estado** e loops de controle. Ideal para agentes complexos e fluxos cíclicos.
+  - *Docs:* [Langgraph](https://langchain-ai.github.io/langgraph/)
+- **LlamaIndex:** O especialista em dados. Focado em ingestão, indexação e estratégias avançadas de RAG.
+  - *Docs:* [LlamaIndex](https://docs.llamaindex.ai/)
+
+### 2. Frameworks de Agentes
+*Sistemas que agem, não apenas respondem.*
+
+- **LangGraph (Agentes):** Permite construir agentes com controle granular de estado e memória. O padrão para sistemas robustos.
+- **CrewAI:** Focado em orquestração de "equipes" de agentes com papéis definidos (Pesquisador, Escritor). Mais alto nível.
+  - *Docs:* [CrewAI](https://docs.crewai.com/)
+- **AutoGen (Microsoft):** Padrão conversacional entre múltiplos agentes. Ótimo para simulações complexas.
+  - *Docs:* [AutoGen](https://microsoft.github.io/autogen/)
+- **Agno:** Um framework para construir multi-agent systems que aprendem e melhoram a cada interação.
+  - *Docs:* [Agno](https://docs.agno.com/) 
+
+### 3. Frameworks de RAG
+*Conectando dados proprietários.*
+
+- **LangChain/LlamaIndex:** Ambos oferecem pipelines completos de RAG.
+- **Docling:** Especialista em parsing de documentos complexos (PDFs com tabelas). Transforma arquivos em JSON/Markdown estruturado para RAG.
+  - *Docs:* [Docling](https://docling-project.github.io/docling/)
+
+### 4. Frameworks de Modelo & Inferência
+*Rodando o modelo (se você não usa API proprietária).*
+
+- **Hugging Face Transformers:** A biblioteca de fato para manipular modelos open-source.
+  - *Docs:* [Transformers](https://huggingface.co/docs/transformers)
+- **vLLM:** Servidor de inferência focado em alto throughput e gerenciamento de memória (PagedAttention). Essencial para self-hosting.
+  - *Docs:* [vLLM](https://docs.vllm.ai/)
+- **Unsloth:** Acelerador de Fine-Tuning. Treina modelos (Llama, Mistral) até 5x mais rápido com menos memória.
+  - *Docs:* [Unsloth](https://github.com/unslothai/unsloth)
+
+---
+
+### 5. Frameworks de Vector Store & Memória Semântica
+
+*A camada de memória de longo prazo dos sistemas de IA.*
+
+* **Qdrant:** Banco vetorial open-source focado em performance, filtros por metadata e uso em produção. Muito utilizado em sistemas RAG self-hosted.
+
+  * *Docs:* [Qdrant](https://qdrant.tech/documentation/)
+
+* **Weaviate:** Vector database com suporte nativo a busca híbrida (BM25 + vetores) e schema semântico. Popular em arquiteturas corporativas.
+
+  * *Docs:* [Weaviate](https://weaviate.io/developers/weaviate)
+
+* **Milvus:** Banco vetorial distribuído projetado para grandes volumes (milhões a bilhões de vetores). Indicado para workloads enterprise.
+
+  * *Docs:* [Milvus](https://milvus.io/docs/overview.md)
+
+* **Pinecone:** Vector database gerenciado (SaaS), com foco em simplicidade operacional, alta disponibilidade e escalabilidade automática.
+
+  * *Docs:* [Pinecone](https://docs.pinecone.io/)
+
+* **Chroma:** Vector store leve e simples, muito usado em protótipos, MVPs e ambientes locais.
+
+  * *Docs:* [Chroma](https://docs.trychroma.com/)
+
+* **FAISS:** Biblioteca de busca vetorial em memória desenvolvida pela Meta. Ideal para datasets estáticos e experimentação local.
+
+  * *Docs:* [FAISS](https://github.com/facebookresearch/faiss)
+
+---
+
+
+### 6. Frameworks de Observabilidade & Avaliação
+
+*Entendendo, medindo e depurando sistemas de IA em produção.*
+
+* **MLflow:** Plataforma de experimentação e rastreabilidade usada para versionar prompts, datasets, métricas e execuções de modelos. Base do LLMOps moderno.
+
+  * *Docs:* [MLflow](https://mlflow.org/docs/latest/index.html)
+
+* **LangSmith:** Ferramenta oficial de observabilidade do ecossistema LangChain. Permite tracing detalhado de chains, graphs, prompts, retrieval e avaliação com LLM-as-a-Judge.
+
+  * *Docs:* [LangSmith](https://docs.smith.langchain.com/)
+
+* **Langfuse:** Plataforma open-source e vendor-agnostic para observabilidade de aplicações com LLMs. Suporta tracing distribuído, versionamento de prompts, métricas de custo e feedback humano.
+
+  * *Docs:* [Langfuse](https://langfuse.com/docs)
+
+* **AgentOps:** Ferramenta focada em monitoramento e avaliação de agentes de IA, com tracking de decisões, execuções de ferramentas e falhas em fluxos multi-etapa.
+
+  * *Docs:* [AgentOps](https://docs.agentops.ai/)
+
+---
+
+## 🔗 Parte 4: Como tudo se encaixa (Arquitetura de Referência)
+
+Um sistema de IA real em produção não é um script único. Ele é composto por camadas especializadas trabalhando em harmonia:
+
+1.  **Camada de Serviço (FastAPI + Pydantic):** Recebe a requisição do usuário, valida o schema de entrada e autentica.
+2.  **Camada de Orquestração (LangGraph):** Recebe o input limpo. O grafo decide o fluxo: "Preciso buscar documentos?" ou "Posso responder direto?".
+3.  **Camada de Recuperação (Qdrant + LlamaIndex):** Se decidir buscar, consulta o Banco Vetorial usando embeddings.
+4.  **Camada de Geração (HTTPX + LLM API):** Envia o prompt montado (contexto + pergunta) para o LLM via requisição assíncrona.
+5.  **Camada de Observabilidade (Logging + Langfuse):** Registra cada passo (latência, tokens usados, decisão do agente) para análise no painel.
+
+> **Resumo:** O AI Engineer usa Python para costurar esses componentes com robustez, transformando componentes probabilísticos (LLMs) em sistemas de software confiáveis.
